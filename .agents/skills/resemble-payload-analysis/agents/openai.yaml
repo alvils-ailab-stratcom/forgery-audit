@@ -1,0 +1,3 @@
+interface:
+  display_name: "Resemble Payload Analysis"
+  short_description: "Inspect and preserve raw deepfake detection evidence"

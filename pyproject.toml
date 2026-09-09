@@ -1,0 +1,30 @@
+[project]
+name = "forgery-audit"
+version = "0.1.0"
+description = "Evidence-preserving Resemble deepfake analysis with Latvian PDF reports"
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.28,<1", "python-dotenv>=1,<2", "reportlab>=4.4,<5", "pillow>=12,<13"]
+
+[project.scripts]
+forgery-audit = "forgery_audit.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = ["pytest>=8.4", "pytest-cov>=7,<8", "ruff>=0.16,<0.17", "ty>=0.0.69,<0.1", "pypdf>=6,<7"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["forgery_audit"]
+relative_files = true

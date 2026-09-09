@@ -1,0 +1,33 @@
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          version: "0.12.6"
+          enable-cache: true
+      - run: sudo apt-get update && sudo apt-get install -y fonts-dejavu-core ffmpeg
+      - run: uv python install 3.12
+      - run: make install test build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-and-package
+          path: |
+            coverage.xml
+            dist/

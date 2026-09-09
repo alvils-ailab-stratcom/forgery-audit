@@ -1,0 +1,28 @@
+# Adapted from ../abm: uv, Python 3.12, separate static and test gates.
+name: Quality
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0, as in ABM
+        with:
+          version: "0.12.6"
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv lock --check
+      - run: make install lint types audit
