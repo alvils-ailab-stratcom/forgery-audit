@@ -59,6 +59,7 @@ def test_folder_reports_and_raw_history_survive_offline_regeneration(tmp_path):
     assert "| C2PA satura akreditācija | nav |" in report and "| EXIF metadati | nav |" in report
     assert "8 no 8 atbildēti" in report and "klasificē kā viltotu" in report
     assert "<img" not in report
+    assert "## Atsauces" in report and "docs.resemble.ai" in report and "## Rādītāju skaidrojums" in report
     cover = (output / "atzinums.lv.md").read_text()
     assert "### attēls.jpg" in cover and "### document.txt" in cover and "nav atbalstīts" in cover
     assert sha256(directory / "source.jpg") == sha256(source / "attēls.jpg")

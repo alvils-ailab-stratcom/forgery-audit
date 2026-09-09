@@ -1,4 +1,4 @@
-"""Latvian Markdown per artifact: material facts, every check performed with its result, then the conclusion."""
+"""Latvian Markdown per artifact: material, every check with its result, conclusion, references, score legend."""
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -7,6 +7,23 @@ from forgery_audit.client import load_json
 
 CODECS = {"h264": "H.264", "hevc": "H.265", "h265": "H.265", "vp9": "VP9", "av1": "AV1", "aac": "AAC", "mp3": "MP3"}
 LABELS_LV = {"fake": "viltots", "likely fake": "iespējams viltots", "real": "īsts", "likely real": "iespējams īsts"}
+DOCS = [
+    (
+        "Resemble AI Detect API (detektors, Intelligence, ūdenszīmes, C2PA, atgriezeniskā meklēšana, skaņas avots)",
+        "https://docs.resemble.ai/api-reference/deepfake-detection/create-detection",
+    ),
+    ("Resemble AI ūdenszīmju noteikšana (Perth, Google SynthID)", "https://docs.resemble.ai/detect/watermark"),
+    ("Resemble AI skaņas avota noteikšana", "https://docs.resemble.ai/detect/audio-source-tracing"),
+    ("Resemble AI Detect Intelligence jautājumi", "https://docs.resemble.ai/detect/detect-intelligence"),
+]
+SCORE_NOTES = [
+    "Detektora rezultāts un kopvērtējums: piegādātāja varbūtība 0–1, ka saturs ir sintētisks; noteiktība un "
+    "konsekvence raksturo rezultāta stabilitāti starp kadriem vai skaņas posmiem.",
+    "Ūdenszīmes detekcijas rādītājs: piegādātāja varbūtība 0–1, ka iegulta ūdenszīme ir; vērtība ap 0,5 nozīmē, "
+    "ka signāla nav. Ūdenszīmes trūkums neapliecina autentiskumu.",
+    "Intelligence vērtības iekavās ir piegādātāja pārliecība 0–100 par savu skaidrojumu, ne neatkarīgs "
+    "apstiprinājums. Atgriezeniskās meklēšanas līdzība ir piegādātāja vērtējums 0–1.",
+]
 SUMMARY_CHECKS = {
     "Attēla detektors",
     "Video detektors",
@@ -232,6 +249,28 @@ def check_rows(directory: Path, metadata: dict, analysis: dict) -> list[tuple[st
     return [(k, v.replace("|", "/").replace("\n", " ")) for k, v in rows]
 
 
+def reference_lines(directory: Path, metadata: dict, analysis: dict) -> list[str]:
+    """Numbered references: reverse-search articles with the provider's reason, then method documentation."""
+    lines = []
+    sources = analysis.get("reverse_image_search") or []
+    for source in sources:
+        if not isinstance(source, dict) or not source.get("url"):
+            continue
+        url = source.get("resolved_url") or source["url"]
+        reason = f" {source['reason']}" if source.get("reason") else ""
+        title = source.get("title", "avots")
+        lines.append(f"[{title}]({url}), līdzība {_num(source.get('similarity'), 2)}.{reason}")
+    item = _item(directory)
+    if item.get("uuid"):
+        stamp = str(item.get("created_at", ""))[:19].replace("T", " ")
+        lines.append(
+            f"Resemble AI Detect analīze `{item['uuid']}`, {stamp} UTC; pilnās API atbildes saglabātas pierādījumu mapē."
+        )
+    if metadata.get("media_type") != "unsupported":
+        lines += [f"[{title}]({url})" for title, url in DOCS]
+    return [f"{i}. {line}" for i, line in enumerate(lines, 1)]
+
+
 def _table(header: tuple[str, str], rows: list[tuple[str, str]]) -> str:
     lines = [f"| {header[0]} | {header[1]} |", "|---|---|"]
     lines += [f"| {k} | {v} |" for k, v in rows]
@@ -346,6 +385,11 @@ def write_artifact_report(root: Path, entry: dict) -> Path:
         "",
         conclusion_text(directory, metadata, analysis),
     ]
+    references = reference_lines(directory, metadata, analysis)
+    if references:
+        lines += ["", "## Atsauces", "", *references]
+        if metadata.get("media_type") != "unsupported" and item:
+            lines += ["", "## Rādītāju skaidrojums", "", *[f"- {note}" for note in SCORE_NOTES]]
     target = root / "reports" / report_name(entry["file"])
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -62,13 +62,18 @@ key scores in words and numbers (for example "rezultāts 0,995"). Cover the seve
 7. When, where, device: EXIF, container tags (encoder, platform id, AIGC field), on-screen platform
    watermark and handle, absence of capture metadata. Filesystem dates are not capture dates.
 
-End with one sentence on whether the independent checks agree. Then run `make reports OUTPUT=results/<case>`.
+Refer to sources in the prose as "saites atsaucēs" and name them (for example "divas Jauns.lv publikācijas");
+never paste URLs into the prose, the Atsauces section carries them. End with one sentence on whether the
+independent checks agree. Then run `make reports OUTPUT=results/<case>`.
 
 ## 4. Verify and hand over
 
 - `results/<case>/reports/<file>.lv.md` per artifact: title, material table (file, SHA-256, format, date,
-  analysis id), checks-and-results table with scores, conclusion. No images. The only links are the
-  reverse-image-search references (resolved article URLs) in the table.
+  analysis id), checks-and-results table with scores, conclusion, **Atsauces** (numbered references:
+  every reverse-image-search article with resolved URL, similarity and the provider's reason; the Resemble
+  analysis id; the Resemble documentation for each method used) and **Rādītāju skaidrojums** (what each
+  score means). No images. References are mandatory: a report without the Atsauces section is not finished.
+  If `reverse-search.json` has `resolved_url: null`, rerun `make analyze` online so redirects resolve.
 - `results/<case>/atzinums.lv.md`: method, then per file the format, verdict and key result rows.
 - Read each file once for Latvian and consistency between the table and the prose.
 - Answer the user with the report paths and a two-sentence summary per file. Raw payloads, English analysis
