@@ -52,7 +52,7 @@ For each directory in `results/<case>/manifest.json` read, in English:
 - `latest.json`: raw scores; `latest.superseded-*.json`: earlier runs of the same file in this folder.
   If runs disagree (for example on a depicted person's identity, or localized composite versus fully
   generated), report the disagreement and never assert the identity or pick a side without your own
-  observation. Quote only numbers that exist in `latest.json`; the Detect Intelligence answers in
+  observation; do not spend API calls on a tie-breaking re-run. Quote only numbers that exist in `latest.json`; the Detect Intelligence answers in
   `questions.en.json` sometimes state percentages that are not in the payload, so never copy those.
 - `metadata.json`: format, dimensions, duration, codecs, container tags.
 - Look at the media yourself: open the image (crop suspicious regions); for video extract three or four
