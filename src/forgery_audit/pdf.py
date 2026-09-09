@@ -142,13 +142,7 @@ def write_pdf(markdown_path: Path, pdf_path: Path | None = None, subject: str | 
         canvas.setStrokeColor(RULE)
         canvas.setLineWidth(0.4)
         canvas.line(20 * mm, 16 * mm, A4[0] - 20 * mm, 16 * mm)
-        canvas.drawString(
-            20 * mm,
-            11.5 * mm,
-            f"{DOCUMENT_TITLE} · SHA-256 {footer_text}"
-            if len(footer_text) == 64
-            else f"{DOCUMENT_TITLE} · {footer_text}",
-        )
+        canvas.drawString(20 * mm, 11.5 * mm, DOCUMENT_TITLE)
         canvas.drawRightString(A4[0] - 20 * mm, 11.5 * mm, f"{doc.page}. lpp.")
         canvas.restoreState()
 
