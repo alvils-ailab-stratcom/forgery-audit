@@ -417,8 +417,6 @@ def write_artifact_report(root: Path, entry: dict, analyst: str) -> Path:
         "",
         "---",
         "",
-        "Pilnie Resemble AI pieprasījumi un atbildes, faila kopija un kontrolsumma glabājas pierādījumu mapē.",
-        "",
         f"Sagatavoja: {analyst}  Paraksts: ____________________  Datums: {stamp}",
     ]
     target = root / "reports" / report_name(entry["file"])
