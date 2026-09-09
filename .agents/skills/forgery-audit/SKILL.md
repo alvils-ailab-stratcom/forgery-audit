@@ -29,7 +29,8 @@ classification when the plan allows it, and eight Detect Intelligence questions 
 add-on is dropped automatically after a confirmed rejection and recorded in `job.json`. Detect Agents and
 the Identity API are not enabled for this account; text and documents are not analyzable and get an
 "unsupported" report. A finished job (same UUID in `job.json`) is reused, so rerunning into an output
-directory that already holds payloads resumes without a new upload; rerunning after new options became
+directory that already holds payloads resumes without a new upload (this is the intended way to
+continue a case folder, never discard it); rerunning after new options became
 available starts a new job and keeps the old one as `job.superseded-NN.json`.
 
 If the command exits nonzero, read the printed reason and `analysis.en.json` → `error`; fix (missing key,
@@ -42,9 +43,11 @@ For each directory in `results/<case>/manifest.json` read, in English:
 - `analysis.en.json`: verdict per modality, frame timestamps, coverage, `watermark`, `c2pa_manifest`,
   `audio_source_tracing`, `provenance` (EXIF, container tags, platform hint), `intelligence`, `questions`
   (provider answers to the eight questions), `reverse_image_search`, `undocumented_fields`.
-- `latest.json`: raw scores; `latest.superseded-*.json`: earlier runs. If runs disagree (for example on
-  a depicted person's identity, or localized composite versus fully generated), report the disagreement
-  and never assert the identity or pick a side without your own observation.
+- `latest.json`: raw scores; `latest.superseded-*.json`: earlier runs of the same file in this folder.
+  If runs disagree (for example on a depicted person's identity, or localized composite versus fully
+  generated), report the disagreement and never assert the identity or pick a side without your own
+  observation. Quote only numbers that exist in `latest.json`; the Detect Intelligence answers in
+  `questions.en.json` sometimes state percentages that are not in the payload, so never copy those.
 - `metadata.json`: format, dimensions, duration, codecs, container tags.
 - Look at the media yourself: open the image (crop suspicious regions); for video extract three or four
   frames with `ffmpeg`. On-screen platform watermarks, handles and "AI-generated" captions are evidence.
