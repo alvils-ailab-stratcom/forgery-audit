@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from forgery_audit.client import load_json
+from forgery_audit.pdf import write_pdf
 
 CODECS = {"h264": "H.264", "hevc": "H.265", "h265": "H.265", "vp9": "VP9", "av1": "AV1", "aac": "AAC", "mp3": "MP3"}
 LABELS_LV = {"fake": "viltots", "likely fake": "iespējams viltots", "real": "īsts", "likely real": "iespējams īsts"}
@@ -17,13 +18,24 @@ DOCS = [
     ("Resemble AI Detect Intelligence jautājumi", "https://docs.resemble.ai/detect/detect-intelligence"),
 ]
 SCORE_NOTES = [
-    "Detektora rezultāts un kopvērtējums: piegādātāja varbūtība 0–1, ka saturs ir sintētisks; noteiktība un "
-    "konsekvence raksturo rezultāta stabilitāti starp kadriem vai skaņas posmiem.",
+    "Detektora rezultāts un kopvērtējums: piegādātāja varbūtība 0–1, ka saturs ir sintētisks.",
+    "Noteiktība un konsekvence: rezultāta stabilitāte starp analizētajiem kadriem vai skaņas posmiem.",
     "Ūdenszīmes detekcijas rādītājs: piegādātāja varbūtība 0–1, ka iegulta ūdenszīme ir; vērtība ap 0,5 nozīmē, "
     "ka signāla nav. Ūdenszīmes trūkums neapliecina autentiskumu.",
-    "Intelligence vērtības iekavās ir piegādātāja pārliecība 0–100 par savu skaidrojumu, ne neatkarīgs "
-    "apstiprinājums. Atgriezeniskās meklēšanas līdzība ir piegādātāja vērtējums 0–1.",
+    "Intelligence vērtības iekavās: piegādātāja pārliecība 0–100 par savu skaidrojumu, ne neatkarīgs apstiprinājums.",
+    "Atgriezeniskās meklēšanas līdzība: piegādātāja vērtējums 0–1 par atrastā avota atbilstību.",
 ]
+QUESTIONS_LV = [
+    "Vai iesniegtais attēls un video saturs ir izveidots, izmantojot dziļviltojuma tehnoloģiju?",
+    "Vai iesniegtais attēls un video saturs viss vai kādā tā daļā (kurā tieši) ir izveidots, izmantojot "
+    "dziļviltojuma tehnoloģiju?",
+    "Vai iesniegtais attēls un video saturs ir manipulēts vai ģenerēts ar dziļviltojuma tehnoloģiju?",
+    "Ar kādu dziļviltojuma tehnoloģiju izgatavots iesniegtais attēls un video saturs?",
+    "Kāds uzdevums dots dziļviltojuma tehnoloģijai, lai izveidotu iesniegto attēlu un video saturu?",
+    "Kādus materiālus izmantoja dziļviltojuma tehnoloģija, lai izveidotu iesniegto attēlu un video saturu?",
+    "Kad, kur un ar kādu ierīci iesniegtais attēls un video saturs ir izveidots?",
+]
+ISSUER = "Forgery Audit, automatizēta analīze ar Resemble AI Detect"
 SUMMARY_CHECKS = {
     "Attēla detektors",
     "Video detektors",
@@ -360,37 +372,59 @@ def _load(root: Path, entry: dict) -> tuple[Path, dict, dict]:
     return directory, metadata, analysis
 
 
+def document_number(metadata: dict, stamp: str) -> str:
+    return f"ATZ-{stamp.replace('-', '')}-{str(metadata.get('sha256', ''))[:8].upper() or 'NA'}"
+
+
 def write_artifact_report(root: Path, entry: dict) -> Path:
     directory, metadata, analysis = _load(root, entry)
     item = _item(directory)
-    material = [
-        ("Fails", f"`{entry['file']}`"),
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
+    header = [
+        ("Dokuments", f"Atzinums Nr. {document_number(metadata, stamp)}"),
+        ("Datums", stamp),
+        ("Sagatavoja", ISSUER),
+        ("Pārbaudāmais materiāls", f"`{entry['file']}`"),
         ("SHA-256", f"`{metadata.get('sha256', 'nav')}`"),
         ("Formāts", describe_file(metadata)),
-        ("Analīzes datums", datetime.now(UTC).strftime("%Y-%m-%d")),
     ]
     if item.get("uuid"):
-        material.append(("Resemble AI analīzes ID", f"`{item['uuid']}`, {str(item.get('created_at', ''))[:10]}"))
+        header.append(("Resemble AI analīzes ID", f"`{item['uuid']}`, {str(item.get('created_at', ''))[:10]}"))
     lines = [
-        f"# Atzinums: {entry['file']}",
+        "# Digitālā materiāla dziļviltojuma analīzes atzinums",
         "",
-        "## Materiāls",
+        f"## {entry['file']}",
         "",
-        _table(("Parametrs", "Vērtība"), material),
+        _table(("", ""), header),
         "",
-        "## Veiktās pārbaudes un rezultāti",
+        "## 1. Atzinums",
+        "",
+        conclusion_text(directory, metadata, analysis),
+        "",
+        "## 2. Veiktās pārbaudes un rezultāti",
         "",
         _table(("Pārbaude", "Rezultāts"), check_rows(directory, metadata, analysis)),
         "",
-        "## Secinājums",
+        "## 3. Pārbaudes uzdevums",
         "",
-        conclusion_text(directory, metadata, analysis),
+        "Atzinums sniedz atbildes uz šādiem jautājumiem, ciktāl to pieļauj pieejamie pierādījumi:",
+        "",
+        *[f"{i}. {q}" for i, q in enumerate(QUESTIONS_LV, 1)],
     ]
     references = reference_lines(directory, metadata, analysis)
     if references:
-        lines += ["", "## Atsauces", "", *references]
-        if metadata.get("media_type") != "unsupported" and item:
-            lines += ["", "## Rādītāju skaidrojums", "", *[f"- {note}" for note in SCORE_NOTES]]
+        lines += ["", "## 4. Atsauces", "", *references]
+    if metadata.get("media_type") != "unsupported" and item:
+        lines += ["", "## 5. Rādītāju skaidrojums", "", *[f"- {note}" for note in SCORE_NOTES]]
+    lines += [
+        "",
+        "---",
+        "",
+        "Atzinumu sagatavoja automatizēta analīze; pilnie Resemble AI pieprasījumi un atbildes, faila kopija un "
+        "kontrolsumma glabājas pierādījumu mapē.",
+        "",
+        "Pārbaudīja: ____________________  Datums: ____________",
+    ]
     target = root / "reports" / report_name(entry["file"])
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -398,32 +432,57 @@ def write_artifact_report(root: Path, entry: dict) -> Path:
 
 
 def write_summary(root: Path, entries: list[dict]) -> Path:
+    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
     lines = [
-        "# Audita atzinums",
+        "# Digitālā materiāla dziļviltojuma analīzes atzinums",
         "",
-        "## Metode",
+        "## Kopsavilkums",
         "",
-        f"Pārbaudīti {len(entries)} faili ({datetime.now(UTC).strftime('%Y-%m-%d')}) ar Resemble AI Detect: "
-        "dziļviltojuma detektors katrai modalitātei, Intelligence analīze, ūdenszīmju pārbaude (Resemble Perth, "
-        "Google SynthID), C2PA satura akreditācija, atgriezeniskā attēlu meklēšana, skaņas avota noteikšana un "
-        "Detect Intelligence jautājumi; papildus lokālie faila metadati. Katram failam ir atsevišķs atzinums.",
+        _table(
+            ("", ""),
+            [
+                ("Dokuments", f"Audita kopsavilkums, {stamp}"),
+                ("Sagatavoja", ISSUER),
+                ("Pārbaudīto failu skaits", str(len(entries))),
+            ],
+        ),
         "",
-        "## Rezultāti",
+        "## 1. Atzinums",
         "",
     ]
     for entry in entries:
+        _directory, metadata, analysis = _load(root, entry)
+        lines += [f"**{entry['file']}.** {describe_file(metadata)}. {verdict_sentence(analysis)}", ""]
+    lines += ["## 2. Veiktās pārbaudes un rezultāti", ""]
+    for entry in entries:
         directory, metadata, analysis = _load(root, entry)
         rows = [(k, v) for k, v in check_rows(directory, metadata, analysis) if k in SUMMARY_CHECKS]
-        lines += [f"### {entry['file']}", "", f"{describe_file(metadata)}. {verdict_sentence(analysis)}", ""]
+        lines += [f"### {entry['file']}", ""]
         if rows:
             lines += [_table(("Pārbaude", "Rezultāts"), rows), ""]
+    lines += [
+        "## 3. Metode",
+        "",
+        "Resemble AI Detect: dziļviltojuma detektors katrai modalitātei, Intelligence analīze, ūdenszīmju pārbaude "
+        "(Resemble Perth, Google SynthID), C2PA satura akreditācija, atgriezeniskā attēlu meklēšana, skaņas avota "
+        "noteikšana un Detect Intelligence jautājumi; papildus lokālie faila metadati un apskate. Katram failam ir "
+        "atsevišķs atzinums ar pilnu pārbaužu tabulu, atsaucēm un rādītāju skaidrojumu.",
+        "",
+        "---",
+        "",
+        "Pārbaudīja: ____________________  Datums: ____________",
+    ]
     target = root / "atzinums.lv.md"
     target.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return target
 
 
 def write_markdown(root: Path, entries: list[dict]) -> list[Path]:
-    """Per-artifact reports under reports/ and the audit cover; entirely offline."""
-    written = [write_artifact_report(root, entry) for entry in entries]
-    written.append(write_summary(root, entries))
+    """Per-artifact Markdown and PDF under reports/, plus the audit cover in both formats; entirely offline."""
+    written = []
+    for entry in entries:
+        markdown = write_artifact_report(root, entry)
+        written += [markdown, write_pdf(markdown, subject=entry["file"])]
+    cover = write_summary(root, entries)
+    written += [cover, write_pdf(cover, subject="kopsavilkums")]
     return written

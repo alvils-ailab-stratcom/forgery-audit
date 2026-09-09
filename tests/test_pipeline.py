@@ -52,19 +52,22 @@ def test_folder_reports_and_raw_history_survive_offline_regeneration(tmp_path):
     questions = json.loads((directory / "questions.en.json").read_text())
     assert len(questions) == 8 and all(q["answer"] == "Provider text." for q in questions)
     report = (output / "reports" / "attēls.jpg.lv.md").read_text()
-    assert report.startswith("# Atzinums: attēls.jpg")
-    assert "## Materiāls" in report and "## Veiktās pārbaudes un rezultāti" in report and "## Secinājums" in report
+    assert report.startswith("# Digitālā materiāla dziļviltojuma analīzes atzinums\n\n## attēls.jpg")
+    assert "| Dokuments | Atzinums Nr. ATZ-" in report and "## 1. Atzinums" in report
+    assert "## 2. Veiktās pārbaudes un rezultāti" in report and "## 3. Pārbaudes uzdevums" in report
+    assert report.index("## 1. Atzinums") < report.index("## 2. Veiktās")
     assert "| Attēla detektors | Fake (viltots), rezultāts 0,981 |" in report
     assert "| Ūdenszīmes (Resemble Perth, Google SynthID) | Perth nav; SynthID nav |" in report
     assert "| C2PA satura akreditācija | nav |" in report and "| EXIF metadati | nav |" in report
     assert "8 no 8 atbildēti" in report and "klasificē kā viltotu" in report
     assert "<img" not in report
-    assert "## Atsauces" in report and "docs.resemble.ai" in report and "## Rādītāju skaidrojums" in report
+    assert "## 4. Atsauces" in report and "docs.resemble.ai" in report and "## 5. Rādītāju skaidrojums" in report
     cover = (output / "atzinums.lv.md").read_text()
     assert "### attēls.jpg" in cover and "### document.txt" in cover and "nav atbalstīts" in cover
     assert sha256(directory / "source.jpg") == sha256(source / "attēls.jpg")
-    pdf = PdfReader(directory / "report.lv.pdf")
+    pdf = PdfReader(output / "reports" / "attēls.jpg.lv.pdf")
     text = " ".join(page.extract_text() for page in pdf.pages)
+    assert "Atzinums" in text and "SynthID" in text and (output / "atzinums.lv.pdf").exists()
     assert "dziļviltojuma" in text
     assert "0.98123" not in text
     assert "confidence" not in text.lower()
@@ -108,8 +111,8 @@ def test_review_requires_existing_evidence_and_renders_attributed_latvian(tmp_pa
     review_path.write_text(json.dumps(review))
     metadata = {"relative_path": "image.jpg", "sha256": "a" * 64}
     write_report(tmp_path, metadata, analyze(payload, "image"))
-    text = " ".join(p.extract_text() for p in PdfReader(tmp_path / "report.lv.pdf").pages)
-    assert "izplūdušas" in text
+    saved = json.loads((tmp_path / "report.lv.json").read_text())
+    assert saved["observations"][0]["text_lv"].startswith("Resemble aprakstā")
     review["observations"][0]["pointer"] = "/item/missing"
     review_path.write_text(json.dumps(review))
     with pytest.raises(ValueError, match="pointer is missing"):

@@ -1,17 +1,8 @@
-"""Latvian narrative PDFs; quantitative evidence stays in the intermediate files."""
+"""Structured Latvian narrative (report.lv.json) with the seven answers; the PDF is rendered from Markdown."""
 
 import json
-import os
 from datetime import UTC, datetime
 from pathlib import Path
-from xml.sax.saxutils import escape
-
-from reportlab.lib import colors
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer
 
 from forgery_audit.client import save_json
 
@@ -153,64 +144,5 @@ def write_report(directory: Path, metadata: dict, analysis: dict) -> None:
             observations.append({"text_lv": text, "pointer": pointer})
     value["observations"] = observations
     save_json(directory / "report.lv.json", value)
-    font = Path(os.environ.get("FORGERY_AUDIT_FONT", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
-    if not font.is_file():
-        raise RuntimeError("Install fonts-dejavu-core or set FORGERY_AUDIT_FONT to a Unicode TTF font")
-    pdfmetrics.registerFont(TTFont("Latvian", str(font)))
-    styles = getSampleStyleSheet()
-    body = ParagraphStyle(
-        "LatvianBody", parent=styles["BodyText"], fontName="Latvian", fontSize=10, leading=15, spaceAfter=9
-    )
-    heading = ParagraphStyle(
-        "LatvianHeading",
-        parent=body,
-        fontSize=12,
-        leading=17,
-        spaceBefore=12,
-        textColor=colors.HexColor("#17354a"),
-        keepWithNext=True,
-    )
-    title = ParagraphStyle("LatvianTitle", parent=heading, fontSize=18, leading=23)
-    story: list[Flowable] = []
-
-    def paragraph(text: str, style=body):
-        story.append(Paragraph(escape(text), style))
-
-    paragraph(value["title"], title)
-    paragraph("Materiāls: " + value["filename"])
-    paragraph("SHA-256: " + value["sha256"])
-    paragraph("Analīzes dokumenta datums (UTC): " + value["created_at"])
-    paragraph("Secinājums", heading)
-    paragraph(value["conclusion"])
-    paragraph("Pamatojums un metode", heading)
-    paragraph("Analīzes metode: Resemble AI dziļviltojuma detektora kategorisko rezultātu izvērtēšana.")
-    paragraph(value["reasoning"])
-    if observations:
-        paragraph("Piegādātāja papildu novērojumu izvērtējums", heading)
-        for observation in observations:
-            paragraph(observation["text_lv"])
-        paragraph(
-            "Šie novērojumi ir piegādātāja skaidrojuma izvērtējums; tie nav neatkarīgi apstiprināti fakti. "
-            "Saistes uz sākotnējiem datiem saglabātas dokumenta strukturētajā versijā."
-        )
-    for index, question in enumerate(value["questions"], 1):
-        paragraph(f"{index}. {question['question']}", heading)
-        paragraph(question["answer"])
-    paragraph("Ierobežojumi un pierādījumu uzskaite", heading)
-    paragraph(value["limitations"])
-    paragraph(
-        "Avoti: https://docs.resemble.ai/api-reference/deepfake-detection/create-detection un "
-        "https://docs.resemble.ai/api-reference/deepfake-detection/get-detection. "
-        "Faila kontrolsumma, metadati, pieprasījumi, atbildes un analīze angļu valodā ir saglabāti kopā ar dokumentu."
-    )
-    story.append(Spacer(1, 4 * mm))
-    SimpleDocTemplate(
-        str(directory / "report.lv.pdf"),
-        pagesize=(210 * mm, 297 * mm),
-        rightMargin=20 * mm,
-        leftMargin=20 * mm,
-        topMargin=18 * mm,
-        bottomMargin=18 * mm,
-        title=value["title"],
-        author="Forgery Audit",
-    ).build(story)
+    # The delivered PDF is rendered from the Markdown report by forgery_audit.pdf; this JSON keeps the
+    # structured narrative and the seven answers for downstream tooling.
