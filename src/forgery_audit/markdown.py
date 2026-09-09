@@ -476,7 +476,8 @@ def write_markdown(root: Path, entries: list[dict], analyst: str) -> list[Path]:
     written = []
     for entry in entries:
         markdown = write_artifact_report(root, entry, analyst)
-        written += [markdown, write_pdf(markdown, subject=entry["file"])]
+        _directory, metadata, _analysis = _load(root, entry)
+        written += [markdown, write_pdf(markdown, subject=str(metadata.get("sha256") or entry["file"]))]
     cover = write_summary(root, entries, analyst)
     written += [cover, write_pdf(cover, subject="kopsavilkums")]
     return written
