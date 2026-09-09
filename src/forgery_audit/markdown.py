@@ -384,16 +384,11 @@ def _load(root: Path, entry: dict) -> tuple[Path, dict, dict]:
     return directory, metadata, analysis
 
 
-def document_number(metadata: dict, stamp: str) -> str:
-    return f"ATZ-{stamp.replace('-', '')}-{str(metadata.get('sha256', ''))[:8].upper() or 'NA'}"
-
-
 def write_artifact_report(root: Path, entry: dict, analyst: str) -> Path:
     directory, metadata, analysis = _load(root, entry)
     item = _item(directory)
     stamp = datetime.now(UTC).strftime("%Y-%m-%d")
     header = [
-        ("Dokuments", f"Atzinums Nr. {document_number(metadata, stamp)}"),
         ("Datums", stamp),
         ("Sagatavoja", analyst),
         ("Pārbaudāmais materiāls", f"`{entry['file']}`"),
@@ -440,7 +435,7 @@ def write_summary(root: Path, entries: list[dict], analyst: str) -> Path:
         _table(
             ("", ""),
             [
-                ("Dokuments", f"Audita kopsavilkums, {stamp}"),
+                ("Datums", stamp),
                 ("Sagatavoja", analyst),
                 ("Pārbaudīto failu skaits", str(len(entries))),
             ],

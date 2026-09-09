@@ -54,7 +54,7 @@ def test_folder_reports_and_raw_history_survive_offline_regeneration(tmp_path):
     report = (output / "reports" / "attēls.jpg.lv.md").read_text()
     assert report.startswith("# Digitālā materiāla dziļviltojuma analīzes atzinums\n\n|  |  |")
     assert "## attēls.jpg" not in report and "Pārbaudes uzdevums" not in report
-    assert "| Dokuments | Atzinums Nr. ATZ-" in report and "| Sagatavoja | Alvils Sture |" in report
+    assert "Dokuments" not in report and "ATZ-" not in report and "| Sagatavoja | Alvils Sture |" in report
     assert "## 1. Atzinums" in report and "Sagatavoja: Alvils Sture" in report
     assert "analīzes ID" not in report and "jautājumi" not in report and "Detect Intelligence" not in report
     assert "## 2. Veiktās pārbaudes un rezultāti" in report

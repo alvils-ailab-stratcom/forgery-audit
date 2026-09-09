@@ -113,8 +113,8 @@ do not hand-edit it.
 Every artifact report must have exactly this structure, in this order:
 
 1. Title `# Digitālā materiāla dziļviltojuma analīzes atzinums` (the only H1; no file-name subheading),
-   then the header table (Dokuments Nr. ATZ-…, Datums, Sagatavoja = the named analyst, Pārbaudāmais
-   materiāls, SHA-256, Formāts). No analysis id, no issuer line.
+   then the header table (Datums, Sagatavoja = the named analyst, Pārbaudāmais materiāls, SHA-256,
+   Formāts). No document number, no analysis id, no issuer line.
 2. `## 1. Atzinums`: your conclusion.
 3. `## 2. Veiktās pārbaudes un rezultāti`: one row per check with Resemble's scores.
 4. `## 3. Atsauces`: reverse-search articles with resolved URLs and Latvian reasons, then method
