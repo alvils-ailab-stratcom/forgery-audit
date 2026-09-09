@@ -264,7 +264,8 @@ def reference_lines(directory: Path, metadata: dict, analysis: dict) -> list[str
     if item.get("uuid"):
         stamp = str(item.get("created_at", ""))[:19].replace("T", " ")
         lines.append(
-            f"Resemble AI Detect analīze `{item['uuid']}`, {stamp} UTC; pilnās API atbildes saglabātas pierādījumu mapē."
+            f"Resemble AI Detect analīze `{item['uuid']}`, {stamp} UTC; "
+            "pilnās API atbildes saglabātas pierādījumu mapē."
         )
     if metadata.get("media_type") != "unsupported":
         lines += [f"[{title}]({url})" for title, url in DOCS]
