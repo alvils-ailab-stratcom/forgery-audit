@@ -2,6 +2,8 @@ UV ?= uv
 export UV_PROJECT_ENVIRONMENT := $(CURDIR)/.venv
 DATA ?= data
 OUTPUT ?= results/audit
+ANALYST ?=
+ANALYST_FLAG = $(if $(ANALYST),--analyst "$(ANALYST)",)
 
 .PHONY: install lint format types test check audit build analyze reports
 install:
@@ -24,7 +26,7 @@ build:
 	$(UV) build
 # Live run: uploads new or option-changed files, polls, asks Detect Intelligence, writes PDF and Markdown.
 analyze:
-	$(UV) run forgery-audit "$(DATA)" --output "$(OUTPUT)"
+	$(UV) run forgery-audit "$(DATA)" --output "$(OUTPUT)" $(ANALYST_FLAG)
 # Offline: regenerate analysis, PDF and Markdown (reports/*.lv.md, atzinums.lv.md) from saved payloads.
 reports:
-	$(UV) run forgery-audit "$(DATA)" --output "$(OUTPUT)" --offline
+	$(UV) run forgery-audit "$(DATA)" --output "$(OUTPUT)" --offline $(ANALYST_FLAG)

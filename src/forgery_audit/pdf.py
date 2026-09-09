@@ -2,7 +2,6 @@
 
 import os
 import re
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape
@@ -14,10 +13,18 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Flowable, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    Flowable,
+    HRFlowable,
+    KeepTogether,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 DOCUMENT_TITLE = "Digitālā materiāla dziļviltojuma analīzes atzinums"
-ISSUER = "Forgery Audit"
 FONT_DIR = Path(os.environ.get("FORGERY_AUDIT_FONT_DIR", "/usr/share/fonts/truetype/dejavu"))
 INK = colors.HexColor("#1b2a38")
 RULE = colors.HexColor("#8a97a3")
@@ -54,7 +61,9 @@ def parse_blocks(markdown: str) -> list[tuple[str, Any]]:
             continue
         lines = chunk.split("\n")
         first = lines[0]
-        if first.startswith("# "):
+        if first.strip() == "---":
+            blocks.append(("hr", None))
+        elif first.startswith("# "):
             blocks.append(("h1", first[2:].strip()))
         elif first.startswith("## "):
             blocks.append(("h2", first[3:].strip()))
@@ -82,20 +91,15 @@ def write_pdf(markdown_path: Path, pdf_path: Path | None = None, subject: str | 
     cell_head = ParagraphStyle("cellHead", parent=cell, fontName=bold)
     h1 = ParagraphStyle("h1", fontName=bold, fontSize=15, leading=19, textColor=INK, spaceAfter=2)
     h2 = ParagraphStyle("h2", fontName=bold, fontSize=11, leading=15, textColor=INK, spaceBefore=9, spaceAfter=4)
-    kicker = ParagraphStyle("kicker", fontName=regular, fontSize=8.5, leading=11, textColor=RULE, spaceAfter=8)
     item = ParagraphStyle("item", parent=body, leftIndent=14, firstLineIndent=-14, spaceAfter=3)
     blocks = parse_blocks(markdown_path.read_text(encoding="utf-8"))
     story: list[Flowable] = []
     width = A4[0] - 40 * mm
     for kind, value in blocks:
         if kind == "h1":
-            story += [
-                Paragraph(inline(str(value)), h1),
-                Paragraph(
-                    escape(f"{ISSUER} · sagatavots {datetime.now(UTC).strftime('%Y-%m-%d')} · automatizēta analīze"),
-                    kicker,
-                ),
-            ]
+            story += [Paragraph(inline(str(value)), h1), Spacer(1, 6)]
+        elif kind == "hr":
+            story.append(HRFlowable(width="100%", thickness=0.4, color=RULE, spaceBefore=8, spaceAfter=6))
         elif kind == "h2":
             story.append(Paragraph(inline(str(value)), h2))
         elif kind == "table":
@@ -150,7 +154,6 @@ def write_pdf(markdown_path: Path, pdf_path: Path | None = None, subject: str | 
         topMargin=18 * mm,
         bottomMargin=22 * mm,
         title=f"{DOCUMENT_TITLE}: {footer_text}",
-        author=ISSUER,
         subject=footer_text,
     ).build(story, onFirstPage=decorate, onLaterPages=decorate)
     return pdf_path

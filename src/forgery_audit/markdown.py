@@ -15,8 +15,21 @@ DOCS = [
     ),
     ("Resemble AI ūdenszīmju noteikšana (Perth, Google SynthID)", "https://docs.resemble.ai/detect/watermark"),
     ("Resemble AI skaņas avota noteikšana", "https://docs.resemble.ai/detect/audio-source-tracing"),
-    ("Resemble AI Detect Intelligence jautājumi", "https://docs.resemble.ai/detect/detect-intelligence"),
 ]
+BASIS_LV = {
+    "non_photographic": "nav fotogrāfisks, pilnībā ģenerēts",
+    "localized_manipulation": "lokāla manipulācija",
+    "global_manipulation": "manipulācija visā attēlā",
+    "unknown": "nenoteikts",
+}
+LIVENESS_LV = {"not_real_person": "nav reāla persona", "real_person": "reāla persona", "unknown": "nenoteikts"}
+FRAUD_LV = {
+    "political_manipulation": "politiska manipulācija",
+    "synthetic_media_fraud": "sintētisku mediju krāpšana",
+    "impersonation": "personas atdarināšana",
+    "financial_fraud": "finanšu krāpšana",
+    "none": "nav",
+}
 SCORE_NOTES = [
     "Detektora rezultāts un kopvērtējums: piegādātāja varbūtība 0–1, ka saturs ir sintētisks.",
     "Noteiktība un konsekvence: rezultāta stabilitāte starp analizētajiem kadriem vai skaņas posmiem.",
@@ -25,7 +38,6 @@ SCORE_NOTES = [
     "Intelligence vērtības iekavās: piegādātāja pārliecība 0–100 par savu skaidrojumu, ne neatkarīgs apstiprinājums.",
     "Atgriezeniskās meklēšanas līdzība: piegādātāja vērtējums 0–1 par atrastā avota atbilstību.",
 ]
-ISSUER = "Forgery Audit, automatizēta analīze ar Resemble AI Detect"
 SUMMARY_CHECKS = {
     "Attēla detektors",
     "Video detektors",
@@ -50,7 +62,19 @@ def _num(value, digits: int = 3) -> str:
 
 def _label(value) -> str:
     text = str(value)
-    return f"{text} ({LABELS_LV[text.lower()]})" if text.lower() in LABELS_LV else text
+    return f"{LABELS_LV[text.lower()]} ({text})" if text.lower() in LABELS_LV else text
+
+
+def _term(value, table: dict[str, str]) -> str:
+    key = str(value or "").strip()
+    return table.get(key.lower(), key.replace("_", " ")) if key else "nenoteikts"
+
+
+def translations(directory: Path) -> dict:
+    """Latvian renderings of provider free text, written by the reviewer as intelligence.lv.json."""
+    path = directory / "intelligence.lv.json"
+    value = load_json(path) if path.exists() else {}
+    return value if isinstance(value, dict) else {}
 
 
 def _codec(stream: dict) -> str:
@@ -205,40 +229,43 @@ def check_rows(directory: Path, metadata: dict, analysis: dict) -> list[tuple[st
         elif (item.get("extra_params") or {}).get("use_reverse_search"):
             rows.append(("Atgriezeniskā attēlu meklēšana", "atbilstoši avoti nav atrasti"))
     description = _description(item)
+    lv = translations(directory)
     altered = description.get("digitally_altered")
     if isinstance(altered, dict) and altered:
-        basis = f", pamats {altered['basis']}" if altered.get("basis") else ""
+        basis = f", pamats: {_term(altered['basis'], BASIS_LV)}" if altered.get("basis") else ""
+        detail = lv.get("alterations") or ""
         rows.append(
             (
                 "Intelligence: digitāla pārveidošana",
-                f"{'ir' if altered.get('detected') else 'nav'} ({_num(altered.get('confidence'), 0)}){basis}; "
-                f"{altered.get('alterations', '')}".rstrip("; "),
+                f"{'ir' if altered.get('detected') else 'nav'} ({_num(altered.get('confidence'), 0)}){basis}"
+                + (f"; {detail}" if detail else ""),
             )
         )
     liveness = description.get("liveness")
     if isinstance(liveness, dict) and liveness:
         rows.append(
-            ("Intelligence: dzīvīgums", f"{liveness.get('assessment')} ({_num(liveness.get('confidence'), 0)})")
+            (
+                "Intelligence: dzīvīgums",
+                f"{_term(liveness.get('assessment'), LIVENESS_LV)} ({_num(liveness.get('confidence'), 0)})",
+            )
         )
     fraud = description.get("fraud")
     if isinstance(fraud, dict) and fraud:
+        reasoning = lv.get("fraud_reasoning") or ""
         rows.append(
             (
                 "Intelligence: krāpšanas tips",
-                f"{fraud.get('type')} ({_num(fraud.get('confidence'), 0)}); {fraud.get('reasoning', '')}".rstrip("; "),
+                f"{_term(fraud.get('type'), FRAUD_LV)} ({_num(fraud.get('confidence'), 0)})"
+                + (f"; {reasoning}" if reasoning else ""),
             )
         )
-    if description.get("abnormalities"):
-        rows.append(("Intelligence: novirzes", str(description["abnormalities"])))
+    if lv.get("abnormalities"):
+        rows.append(("Intelligence: novirzes", str(lv["abnormalities"])))
     if description.get("transcription"):
-        rows.append(("Intelligence: transkripcija", str(description["transcription"])))
+        rows.append(("Intelligence: transkripcija", str(lv.get("transcription") or description["transcription"])))
     intelligence = item.get("intelligence")
     if isinstance(intelligence, dict) and intelligence.get("status") != "completed":
         rows.append(("Intelligence", f"nav pabeigts ({intelligence.get('status')})"))
-    questions = [q for q in analysis.get("questions", []) if isinstance(q, dict)]
-    if questions:
-        answered = sum(1 for q in questions if q.get("status") == "completed")
-        rows.append(("Detect Intelligence jautājumi", f"{answered} no {len(questions)} atbildēti"))
     provenance = analysis.get("provenance") or {}
     if kind == "image":
         exif = provenance.get("exif_selected") or {}
@@ -252,22 +279,17 @@ def check_rows(directory: Path, metadata: dict, analysis: dict) -> list[tuple[st
 
 
 def reference_lines(directory: Path, metadata: dict, analysis: dict) -> list[str]:
-    """Numbered references: reverse-search articles with the provider's reason, then method documentation."""
+    """Numbered references: reverse-search articles with the reviewer's Latvian reason, then method docs."""
     lines = []
-    sources = analysis.get("reverse_image_search") or []
-    for source in sources:
+    reasons = translations(directory).get("reverse_search_reasons") or {}
+    for source in analysis.get("reverse_image_search") or []:
         if not isinstance(source, dict) or not source.get("url"):
             continue
         url = source.get("resolved_url") or source["url"]
-        reason = f" {source['reason']}" if source.get("reason") else ""
+        reason = reasons.get(url) or reasons.get(source["url"]) or ""
         title = source.get("title", "avots")
-        lines.append(f"[{title}]({url}), līdzība {_num(source.get('similarity'), 2)}.{reason}")
-    item = _item(directory)
-    if item.get("uuid"):
-        stamp = str(item.get("created_at", ""))[:19].replace("T", " ")
         lines.append(
-            f"Resemble AI Detect analīze `{item['uuid']}`, {stamp} UTC; "
-            "pilnās API atbildes saglabātas pierādījumu mapē."
+            f"[{title}]({url}), līdzība {_num(source.get('similarity'), 2)}." + (f" {reason}" if reason else "")
         )
     if metadata.get("media_type") != "unsupported":
         lines += [f"[{title}]({url})" for title, url in DOCS]
@@ -366,20 +388,18 @@ def document_number(metadata: dict, stamp: str) -> str:
     return f"ATZ-{stamp.replace('-', '')}-{str(metadata.get('sha256', ''))[:8].upper() or 'NA'}"
 
 
-def write_artifact_report(root: Path, entry: dict) -> Path:
+def write_artifact_report(root: Path, entry: dict, analyst: str) -> Path:
     directory, metadata, analysis = _load(root, entry)
     item = _item(directory)
     stamp = datetime.now(UTC).strftime("%Y-%m-%d")
     header = [
         ("Dokuments", f"Atzinums Nr. {document_number(metadata, stamp)}"),
         ("Datums", stamp),
-        ("Sagatavoja", ISSUER),
+        ("Sagatavoja", analyst),
         ("Pārbaudāmais materiāls", f"`{entry['file']}`"),
         ("SHA-256", f"`{metadata.get('sha256', 'nav')}`"),
         ("Formāts", describe_file(metadata)),
     ]
-    if item.get("uuid"):
-        header.append(("Resemble AI analīzes ID", f"`{item['uuid']}`, {str(item.get('created_at', ''))[:10]}"))
     lines = [
         "# Digitālā materiāla dziļviltojuma analīzes atzinums",
         "",
@@ -402,10 +422,9 @@ def write_artifact_report(root: Path, entry: dict) -> Path:
         "",
         "---",
         "",
-        "Atzinumu sagatavoja automatizēta analīze; pilnie Resemble AI pieprasījumi un atbildes, faila kopija un "
-        "kontrolsumma glabājas pierādījumu mapē.",
+        "Pilnie Resemble AI pieprasījumi un atbildes, faila kopija un kontrolsumma glabājas pierādījumu mapē.",
         "",
-        "Pārbaudīja: ____________________  Datums: ____________",
+        f"Sagatavoja: {analyst}  Paraksts: ____________________  Datums: {stamp}",
     ]
     target = root / "reports" / report_name(entry["file"])
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -413,18 +432,16 @@ def write_artifact_report(root: Path, entry: dict) -> Path:
     return target
 
 
-def write_summary(root: Path, entries: list[dict]) -> Path:
+def write_summary(root: Path, entries: list[dict], analyst: str) -> Path:
     stamp = datetime.now(UTC).strftime("%Y-%m-%d")
     lines = [
         "# Digitālā materiāla dziļviltojuma analīzes atzinums",
-        "",
-        "## Kopsavilkums",
         "",
         _table(
             ("", ""),
             [
                 ("Dokuments", f"Audita kopsavilkums, {stamp}"),
-                ("Sagatavoja", ISSUER),
+                ("Sagatavoja", analyst),
                 ("Pārbaudīto failu skaits", str(len(entries))),
             ],
         ),
@@ -446,25 +463,27 @@ def write_summary(root: Path, entries: list[dict]) -> Path:
         "## 3. Metode",
         "",
         "Resemble AI Detect: dziļviltojuma detektors katrai modalitātei, Intelligence analīze, ūdenszīmju pārbaude "
-        "(Resemble Perth, Google SynthID), C2PA satura akreditācija, atgriezeniskā attēlu meklēšana, skaņas avota "
-        "noteikšana un Detect Intelligence jautājumi; papildus lokālie faila metadati un apskate. Katram failam ir "
-        "atsevišķs atzinums ar pilnu pārbaužu tabulu, atsaucēm un rādītāju skaidrojumu.",
+        "(Resemble Perth, Google SynthID), C2PA satura akreditācija, atgriezeniskā attēlu meklēšana un skaņas avota "
+        "noteikšana; papildus lokālie faila metadati un apskate. Katram failam ir atsevišķs atzinums ar pilnu "
+        "pārbaužu tabulu, atsaucēm un rādītāju skaidrojumu.",
         "",
         "---",
         "",
-        "Pārbaudīja: ____________________  Datums: ____________",
+        f"Sagatavoja: {analyst}  Paraksts: ____________________  Datums: {stamp}",
     ]
     target = root / "atzinums.lv.md"
     target.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return target
 
 
-def write_markdown(root: Path, entries: list[dict]) -> list[Path]:
+def write_markdown(root: Path, entries: list[dict], analyst: str) -> list[Path]:
     """Per-artifact Markdown and PDF under reports/, plus the audit cover in both formats; entirely offline."""
+    if not analyst.strip():
+        raise ValueError("The analyst's name is required (--analyst), for example 'Alvils Sture' or 'Karlis Gross'")
     written = []
     for entry in entries:
-        markdown = write_artifact_report(root, entry)
+        markdown = write_artifact_report(root, entry, analyst)
         written += [markdown, write_pdf(markdown, subject=entry["file"])]
-    cover = write_summary(root, entries)
+    cover = write_summary(root, entries, analyst)
     written += [cover, write_pdf(cover, subject="kopsavilkums")]
     return written

@@ -147,7 +147,12 @@ def reverse_search_sources(payload: dict, directory: Path, resolve: bool) -> lis
 
 
 def process(
-    source: Path, output: Path, client: ResembleClient | None, timeout: float = 900, offline: bool = False
+    source: Path,
+    output: Path,
+    client: ResembleClient | None,
+    timeout: float = 900,
+    offline: bool = False,
+    analyst: str | None = None,
 ) -> list[dict]:
     source, output = source.resolve(), output.resolve()
     if not source.is_dir():
@@ -165,6 +170,13 @@ def process(
     if not paths:
         raise ValueError("Input directory contains no artifacts")
     output.mkdir(parents=True, exist_ok=True)
+    analyst_file = output / "analyst.json"
+    if analyst and analyst.strip():
+        save_json(analyst_file, {"analyst": analyst.strip()})
+    elif analyst_file.exists():
+        analyst = str(load_json(analyst_file).get("analyst", ""))
+    if not analyst or not analyst.strip():
+        raise ValueError("The analyst's name is required (--analyst), for example 'Alvils Sture' or 'Karlis Gross'")
     summary = []
     for path in paths:
         relative = path.relative_to(source).as_posix()
@@ -240,5 +252,5 @@ def process(
             save_json(directory / "error.json", entry)
         summary.append(entry)
         save_json(output / "manifest.json", summary)
-    write_markdown(output, summary)
+    write_markdown(output, summary, analyst)
     return summary

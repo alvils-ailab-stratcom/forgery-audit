@@ -43,7 +43,7 @@ def test_folder_reports_and_raw_history_survive_offline_regeneration(tmp_path):
 
     client = ResembleClient("not-a-live-key", transport=httpx.MockTransport(handler))
     output = source / "reports"
-    first = process(source, output, client)
+    first = process(source, output, client, analyst="Alvils Sture")
     client.close()
     assert len(first) == 2
     assert len([c for c in calls if c.method == "POST" and c.url.path.endswith("/detect")]) == 1
@@ -54,13 +54,15 @@ def test_folder_reports_and_raw_history_survive_offline_regeneration(tmp_path):
     report = (output / "reports" / "attēls.jpg.lv.md").read_text()
     assert report.startswith("# Digitālā materiāla dziļviltojuma analīzes atzinums\n\n|  |  |")
     assert "## attēls.jpg" not in report and "Pārbaudes uzdevums" not in report
-    assert "| Dokuments | Atzinums Nr. ATZ-" in report and "## 1. Atzinums" in report
+    assert "| Dokuments | Atzinums Nr. ATZ-" in report and "| Sagatavoja | Alvils Sture |" in report
+    assert "## 1. Atzinums" in report and "Sagatavoja: Alvils Sture" in report
+    assert "analīzes ID" not in report and "jautājumi" not in report and "Detect Intelligence" not in report
     assert "## 2. Veiktās pārbaudes un rezultāti" in report
     assert report.index("## 1. Atzinums") < report.index("## 2. Veiktās")
-    assert "| Attēla detektors | Fake (viltots), rezultāts 0,981 |" in report
+    assert "| Attēla detektors | viltots (Fake), rezultāts 0,981 |" in report
     assert "| Ūdenszīmes (Resemble Perth, Google SynthID) | Perth nav; SynthID nav |" in report
     assert "| C2PA satura akreditācija | nav |" in report and "| EXIF metadati | nav |" in report
-    assert "8 no 8 atbildēti" in report and "klasificē kā viltotu" in report
+    assert "klasificē kā viltotu" in report
     assert "<img" not in report
     assert "## 3. Atsauces" in report and "docs.resemble.ai" in report and "## 4. Rādītāju skaidrojums" in report
     cover = (output / "atzinums.lv.md").read_text()
@@ -74,8 +76,10 @@ def test_folder_reports_and_raw_history_survive_offline_regeneration(tmp_path):
     assert "confidence" not in text.lower()
     assert len(json.loads((directory / "report.lv.json").read_text())["questions"]) == 7
     raw = {p: p.read_bytes() for p in directory.glob("http/*")}
-    second = process(source, output, None, offline=True)
+    second = process(source, output, None, offline=True)  # analyst remembered in analyst.json
     assert len(second) == 2  # Output artifacts never become new input.
+    with pytest.raises(ValueError, match="analyst"):
+        process(source, tmp_path / "other", None, offline=True)
     assert all(p.read_bytes() == content for p, content in raw.items())
     unsupported = next(r for r in first if r["file"] == "document.txt")
     assert unsupported["assessment"] == "inconclusive"

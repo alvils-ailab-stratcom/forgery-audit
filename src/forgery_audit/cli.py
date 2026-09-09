@@ -21,6 +21,11 @@ def main() -> int:
     parser.add_argument(
         "--offline", action="store_true", help="Generate reports from cached payloads; never submit files"
     )
+    parser.add_argument(
+        "--analyst",
+        default=os.environ.get("FORGERY_AUDIT_ANALYST", ""),
+        help="Person who performed the analysis, printed as Sagatavoja; remembered per output folder",
+    )
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
@@ -28,7 +33,7 @@ def main() -> int:
     key = os.environ.get("RESEMBLE_AI_API_KEY") or os.environ.get("RESEMBLE_API_TOKEN")
     client = ResembleClient(key) if key and not args.offline else None
     try:
-        results = process(args.folder, args.output, client, args.timeout, args.offline)
+        results = process(args.folder, args.output, client, args.timeout, args.offline, args.analyst)
     except ValueError as exc:
         parser.error(str(exc))
     finally:

@@ -13,7 +13,9 @@ C2PA outcome, source tracing, reverse search sources, Intelligence assessments w
 abnormalities, transcription, question count, EXIF or container metadata); **3. Atsauces**
 (reverse-image-search articles with resolved URL, similarity and provider reason; the Resemble analysis
 id; documentation of each method); **4. Rādītāju skaidrojums** (one bullet per score type); signature
-block. No file-name subheading, no images, no limitations section, and the client's examination
+block naming the analyst (Alvils Sture or Karlis Gross, as stated by the user). Provider free text in the
+table and the reverse-search reasons come from your `intelligence.lv.json` translations; without them the
+English text is omitted, never printed. No file-name subheading, no images, no limitations section, and the client's examination
 questions are internal guidance that is never printed. References are mandatory. The cover
 `atzinums.lv.md`/`.pdf` is generated only.
 
