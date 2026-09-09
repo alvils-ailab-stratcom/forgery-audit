@@ -72,7 +72,7 @@ text is not printed unless you translate it. Save `intelligence.lv.json` in each
   "alterations": "<Latvian rendering of intelligence.description.digitally_altered.alterations>",
   "fraud_reasoning": "<Latvian rendering of intelligence.description.fraud.reasoning>",
   "abnormalities": "<Latvian rendering of intelligence.description.abnormalities>",
-  "transcription": "<only if the provider transcription needs correction; otherwise omit>",
+  "transcription": "<omit; keep the provider transcription unless you listened to the audio yourself. If two runs transcribe differently, mention it in the conclusion>",
   "reverse_search_reasons": {"<resolved_url>": "<Latvian rendering of that source's reason>"}
 }
 ```
@@ -82,8 +82,8 @@ on-screen text as they appear.
 
 ## 4. Write the reviewed conclusion
 
-Save `conclusion.lv.txt` in each artifact directory (UTF-8, Latvian, three paragraphs, roughly 250–320
-words). It becomes section "1. Atzinums" of the document; everything else is generated. Style: clear and
+Save `conclusion.lv.txt` in each artifact directory (UTF-8, Latvian, three paragraphs, 250–320 words by
+`wc -w`, 320 is a hard ceiling). It becomes section "1. Atzinums" of the document; everything else is generated. Style: clear and
 concise, no filler, continuous flow, no questionnaire, no headings, no URLs, no legal boilerplate, no
 invented credentials, no separate limitations paragraph. State what was tried and what the result was,
 quoting the key numbers with a decimal comma ("rezultāts 0,995", "detekcijas rādītājs 0,52, tuvu
