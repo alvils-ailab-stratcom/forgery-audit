@@ -58,7 +58,7 @@ def test_folder_reports_and_raw_history_survive_offline_regeneration(tmp_path):
     assert "| Ūdenszīmes (Resemble Perth, Google SynthID) | Perth nav; SynthID nav |" in report
     assert "| C2PA satura akreditācija | nav |" in report and "| EXIF metadati | nav |" in report
     assert "8 no 8 atbildēti" in report and "klasificē kā viltotu" in report
-    assert "http" not in report and "<img" not in report
+    assert "<img" not in report
     cover = (output / "atzinums.lv.md").read_text()
     assert "### attēls.jpg" in cover and "### document.txt" in cover and "nav atbalstīts" in cover
     assert sha256(directory / "source.jpg") == sha256(source / "attēls.jpg")

@@ -50,7 +50,7 @@ analīze norāda …") and if two runs disagree, say so. A missing watermark or 
 Save `conclusion.lv.txt` in each artifact directory (UTF-8, Latvian, three short paragraphs, roughly
 250–320 words, half an A4 page). It becomes the "Secinājums" section; the pipeline puts the material
 table and the "Veiktās pārbaudes un rezultāti" table above it. Style: clear and concise, no filler,
-continuous flow, no questionnaire, no headings, no links or file paths, no legal boilerplate, no invented
+continuous flow, no questionnaire, no headings, no file paths, no legal boilerplate, no invented
 credentials, no separate limitations paragraph. State what was tried and what the result was, quoting the
 key scores in words and numbers (for example "rezultāts 0,995"). Cover the seven MIC questions in order:
 
@@ -67,7 +67,8 @@ End with one sentence on whether the independent checks agree. Then run `make re
 ## 4. Verify and hand over
 
 - `results/<case>/reports/<file>.lv.md` per artifact: title, material table (file, SHA-256, format, date,
-  analysis id), checks-and-results table with scores, conclusion. No images, no links (`grep -c http` is 0).
+  analysis id), checks-and-results table with scores, conclusion. No images. The only links are the
+  reverse-image-search references (resolved article URLs) in the table.
 - `results/<case>/atzinums.lv.md`: method, then per file the format, verdict and key result rows.
 - Read each file once for Latvian and consistency between the table and the prose.
 - Answer the user with the report paths and a two-sentence summary per file. Raw payloads, English analysis

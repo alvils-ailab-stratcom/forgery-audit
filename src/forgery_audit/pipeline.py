@@ -11,7 +11,7 @@ from pathlib import Path
 from PIL import ExifTags, Image
 
 from forgery_audit.analysis import analyze
-from forgery_audit.client import DetectionError, ResembleClient, load_json, save_json
+from forgery_audit.client import DetectionError, ResembleClient, load_json, resolve_redirect, save_json
 from forgery_audit.markdown import write_markdown
 from forgery_audit.report import write_report
 
@@ -126,6 +126,26 @@ def extract_visualizations(payload: dict, directory: Path) -> None:
     save_json(directory / "index.json", entries)
 
 
+def reverse_search_sources(payload: dict, directory: Path, resolve: bool) -> list[dict]:
+    """Provider reverse-search hits with the article URL behind each redirect, cached for offline runs."""
+    sources = ((payload.get("item") or {}).get("image_metrics") or {}).get("reverse_image_search_sources")
+    if not isinstance(sources, list):
+        return []
+    cache_path = directory / "reverse-search.json"
+    cache = {e["url"]: e for e in load_json(cache_path) if isinstance(e, dict)} if cache_path.exists() else {}
+    result = []
+    for source in sources:
+        if not isinstance(source, dict) or not source.get("url"):
+            continue
+        entry = dict(cache.get(source["url"]) or {})
+        entry.update({k: source.get(k) for k in ("url", "title", "reason", "similarity")})
+        if resolve and not entry.get("resolved_url"):
+            entry["resolved_url"] = resolve_redirect(str(source["url"]))
+        result.append(entry)
+    save_json(cache_path, result)
+    return result
+
+
 def process(
     source: Path, output: Path, client: ResembleClient | None, timeout: float = 900, offline: bool = False
 ) -> list[dict]:
@@ -199,6 +219,7 @@ def process(
             analysis = analyze(payload, kind, metadata, questions)
             if error:
                 analysis["error"] = error
+            analysis["reverse_image_search"] = reverse_search_sources(payload, directory, resolve=bool(client))
             analysis["coverage"] = {
                 "source_duration_seconds": metadata.get("ffprobe", {}).get("format", {}).get("duration"),
                 "visual_duration_seconds": (payload.get("item", {}).get("video_metrics") or {}).get("duration"),

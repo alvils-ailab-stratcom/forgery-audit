@@ -65,6 +65,16 @@ def auxiliary_done(item: dict) -> bool:
     return True
 
 
+def resolve_redirect(url: str, timeout: float = 20) -> str | None:
+    """Final URL behind a provider redirect, fetched without any credentials; None when it cannot be resolved."""
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) forgery-audit/0.1"}  # redirector stalls without one
+    try:
+        response = httpx.head(url, headers=headers, follow_redirects=True, timeout=timeout)
+        return str(response.url)
+    except httpx.HTTPError:
+        return None
+
+
 class ResembleClient:
     def __init__(self, key: str, transport: httpx.BaseTransport | None = None):
         self.key = key

@@ -152,7 +152,8 @@ def check_rows(directory: Path, metadata: dict, analysis: dict) -> list[tuple[st
     if isinstance(watermark, dict):
         metrics: dict = watermark["metrics"] if isinstance(watermark.get("metrics"), dict) else {}
         models = "; ".join(
-            f"{m.get('model_version')} {'ir' if m.get('detected') else 'nav'} ({_num(m.get('confidence'), 2)})"
+            f"{m.get('model_version')} {'ir' if m.get('detected') else 'nav'}, "
+            f"detekcijas rādītājs {_num(m.get('confidence'), 2)}"
             for m in metrics.get("model_results") or []
             if isinstance(m, dict)
         )
@@ -173,10 +174,11 @@ def check_rows(directory: Path, metadata: dict, analysis: dict) -> list[tuple[st
         state = {"Valid": "derīgi dati ir", "NotPresent": "nav", "Unavailable": "nav pieejams"}
         rows.append(("C2PA satura akreditācija", state.get(c2pa["validation_state"], c2pa["validation_state"])))
     if kind == "image":
-        sources = image.get("reverse_image_search_sources")
+        sources = analysis.get("reverse_image_search") or image.get("reverse_image_search_sources")
         if isinstance(sources, list) and sources:
             listed = "; ".join(
-                f"{s.get('title', 'avots')} (līdzība {_num(s.get('similarity'), 2)})"
+                f"[{s.get('title', 'avots')}]({s.get('resolved_url') or s.get('url')}) "
+                f"(līdzība {_num(s.get('similarity'), 2)})"
                 for s in sources
                 if isinstance(s, dict)
             )
