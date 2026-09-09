@@ -74,11 +74,6 @@ def parse_blocks(markdown: str) -> list[tuple[str, Any]]:
     return blocks
 
 
-def story_has_section(story: list[Flowable]) -> bool:
-    """True once the first subject heading (the file name) has been emitted after the title."""
-    return any(getattr(getattr(f, "style", None), "name", None) == "subject" for f in story)
-
-
 def write_pdf(markdown_path: Path, pdf_path: Path | None = None, subject: str | None = None) -> Path:
     pdf_path = pdf_path or markdown_path.with_suffix(".pdf")
     regular, bold = register_fonts()
@@ -89,7 +84,6 @@ def write_pdf(markdown_path: Path, pdf_path: Path | None = None, subject: str | 
     h2 = ParagraphStyle("h2", fontName=bold, fontSize=11, leading=15, textColor=INK, spaceBefore=9, spaceAfter=4)
     kicker = ParagraphStyle("kicker", fontName=regular, fontSize=8.5, leading=11, textColor=RULE, spaceAfter=8)
     item = ParagraphStyle("item", parent=body, leftIndent=14, firstLineIndent=-14, spaceAfter=3)
-    subject_style = ParagraphStyle("subject", parent=h2, fontSize=12.5, leading=16, spaceBefore=2, spaceAfter=6)
     blocks = parse_blocks(markdown_path.read_text(encoding="utf-8"))
     story: list[Flowable] = []
     width = A4[0] - 40 * mm
@@ -102,8 +96,6 @@ def write_pdf(markdown_path: Path, pdf_path: Path | None = None, subject: str | 
                     kicker,
                 ),
             ]
-        elif kind == "h2" and not story_has_section(story):
-            story.append(Paragraph(inline(str(value)), subject_style))
         elif kind == "h2":
             story.append(Paragraph(inline(str(value)), h2))
         elif kind == "table":

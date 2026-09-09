@@ -25,16 +25,6 @@ SCORE_NOTES = [
     "Intelligence vērtības iekavās: piegādātāja pārliecība 0–100 par savu skaidrojumu, ne neatkarīgs apstiprinājums.",
     "Atgriezeniskās meklēšanas līdzība: piegādātāja vērtējums 0–1 par atrastā avota atbilstību.",
 ]
-QUESTIONS_LV = [
-    "Vai iesniegtais attēls un video saturs ir izveidots, izmantojot dziļviltojuma tehnoloģiju?",
-    "Vai iesniegtais attēls un video saturs viss vai kādā tā daļā (kurā tieši) ir izveidots, izmantojot "
-    "dziļviltojuma tehnoloģiju?",
-    "Vai iesniegtais attēls un video saturs ir manipulēts vai ģenerēts ar dziļviltojuma tehnoloģiju?",
-    "Ar kādu dziļviltojuma tehnoloģiju izgatavots iesniegtais attēls un video saturs?",
-    "Kāds uzdevums dots dziļviltojuma tehnoloģijai, lai izveidotu iesniegto attēlu un video saturu?",
-    "Kādus materiālus izmantoja dziļviltojuma tehnoloģija, lai izveidotu iesniegto attēlu un video saturu?",
-    "Kad, kur un ar kādu ierīci iesniegtais attēls un video saturs ir izveidots?",
-]
 ISSUER = "Forgery Audit, automatizēta analīze ar Resemble AI Detect"
 SUMMARY_CHECKS = {
     "Attēla detektors",
@@ -393,8 +383,6 @@ def write_artifact_report(root: Path, entry: dict) -> Path:
     lines = [
         "# Digitālā materiāla dziļviltojuma analīzes atzinums",
         "",
-        f"## {entry['file']}",
-        "",
         _table(("", ""), header),
         "",
         "## 1. Atzinums",
@@ -404,18 +392,12 @@ def write_artifact_report(root: Path, entry: dict) -> Path:
         "## 2. Veiktās pārbaudes un rezultāti",
         "",
         _table(("Pārbaude", "Rezultāts"), check_rows(directory, metadata, analysis)),
-        "",
-        "## 3. Pārbaudes uzdevums",
-        "",
-        "Atzinums sniedz atbildes uz šādiem jautājumiem, ciktāl to pieļauj pieejamie pierādījumi:",
-        "",
-        *[f"{i}. {q}" for i, q in enumerate(QUESTIONS_LV, 1)],
     ]
     references = reference_lines(directory, metadata, analysis)
     if references:
-        lines += ["", "## 4. Atsauces", "", *references]
+        lines += ["", "## 3. Atsauces", "", *references]
     if metadata.get("media_type") != "unsupported" and item:
-        lines += ["", "## 5. Rādītāju skaidrojums", "", *[f"- {note}" for note in SCORE_NOTES]]
+        lines += ["", "## 4. Rādītāju skaidrojums", "", *[f"- {note}" for note in SCORE_NOTES]]
     lines += [
         "",
         "---",

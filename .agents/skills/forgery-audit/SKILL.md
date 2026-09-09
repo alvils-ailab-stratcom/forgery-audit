@@ -60,15 +60,22 @@ words). It becomes section "1. Atzinums" of the document; everything else is gen
 concise, no filler, continuous flow, no questionnaire, no headings, no URLs, no legal boilerplate, no
 invented credentials, no separate limitations paragraph. State what was tried and what the result was,
 quoting the key numbers with a decimal comma ("rezultāts 0,995", "detekcijas rādītājs 0,52, tuvu
-nejaušības līmenim"). Cover the seven questions of section 3 in order:
+nejaušības līmenim"). The seven questions below are internal guidance for the analysis (the client's
+examination questions); answer them inside the flow and never print them in the report:
 
-1. Deepfake or generative technology used: detector labels and scores per modality.
-2. Which part: region, persons, frame range; sampled frames are not a continuous interval.
-3. Manipulated versus generated: provider `digitally_altered.basis` plus your own viewing.
-4. Technology: audio source tracing, watermark and C2PA outcome, reverse search, Intelligence hypothesis.
-5. Task or prompt and 6. source materials: what is probable and that it is not confirmed.
-7. When, where, device: EXIF, container tags (encoder, platform id, AIGC field), on-screen platform
-   watermark and handle, absence of capture metadata. Filesystem dates are not capture dates.
+1. Was the submitted image or video content created using deepfake technology? Answer with the detector
+   labels and scores per modality.
+2. Is all of the content, or which part of it exactly, created with deepfake technology? Region, persons,
+   frame range; sampled frames are not a continuous interval.
+3. Is the content manipulated or generated with deepfake technology? Provider `digitally_altered.basis`
+   plus your own viewing.
+4. Which deepfake technology was used? Audio source tracing, watermark and C2PA outcome, reverse search,
+   Intelligence hypothesis, all attributed.
+5. What task was the deepfake technology given? What is probable, and that it is not confirmed.
+6. What materials did the technology use to create the content? Likely sources, not confirmed.
+7. When, where and with which device was the content created? EXIF, container tags (encoder, platform
+   id, AIGC field), on-screen platform watermark and handle, absence of capture metadata. Filesystem
+   dates are not capture dates.
 
 Cite sources by name ("divas Jauns.lv publikācijas, saites atsaucēs"). End with one sentence on whether
 the independent checks agree. Then run `make reports OUTPUT=results/<case>`. The cover is generated only;
@@ -78,14 +85,14 @@ do not hand-edit it.
 
 Every artifact report must have exactly this structure, in this order:
 
-1. Title `# Digitālā materiāla dziļviltojuma analīzes atzinums`, then `## <file>` and the header table
-   (Dokuments Nr. ATZ-…, Datums, Sagatavoja, Pārbaudāmais materiāls, SHA-256, Formāts, Resemble AI ID).
+1. Title `# Digitālā materiāla dziļviltojuma analīzes atzinums` (the only H1; no file-name subheading),
+   then the header table (Dokuments Nr. ATZ-…, Datums, Sagatavoja, Pārbaudāmais materiāls, SHA-256,
+   Formāts, Resemble AI ID).
 2. `## 1. Atzinums`: your conclusion.
 3. `## 2. Veiktās pārbaudes un rezultāti`: one row per check with Resemble's scores.
-4. `## 3. Pārbaudes uzdevums`: the seven questions.
-5. `## 4. Atsauces`: reverse-search articles with resolved URLs, the analysis id, method documentation.
-6. `## 5. Rādītāju skaidrojums`: score legend, one bullet per score type.
-7. Signature block (`Pārbaudīja: ____`).
+4. `## 3. Atsauces`: reverse-search articles with resolved URLs, the analysis id, method documentation.
+5. `## 4. Rādītāju skaidrojums`: score legend, one bullet per score type.
+6. Signature block (`Pārbaudīja: ____`). The examination questions are never printed.
 
 Check: `.lv.pdf` exists beside every `.lv.md`, no `resolved_url: null` in `reverse-search.json`
 (otherwise rerun `make analyze` online), no images, prose consistent with the table. Read each file once.

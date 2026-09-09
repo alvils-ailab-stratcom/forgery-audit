@@ -52,16 +52,17 @@ def test_folder_reports_and_raw_history_survive_offline_regeneration(tmp_path):
     questions = json.loads((directory / "questions.en.json").read_text())
     assert len(questions) == 8 and all(q["answer"] == "Provider text." for q in questions)
     report = (output / "reports" / "attēls.jpg.lv.md").read_text()
-    assert report.startswith("# Digitālā materiāla dziļviltojuma analīzes atzinums\n\n## attēls.jpg")
+    assert report.startswith("# Digitālā materiāla dziļviltojuma analīzes atzinums\n\n|  |  |")
+    assert "## attēls.jpg" not in report and "Pārbaudes uzdevums" not in report
     assert "| Dokuments | Atzinums Nr. ATZ-" in report and "## 1. Atzinums" in report
-    assert "## 2. Veiktās pārbaudes un rezultāti" in report and "## 3. Pārbaudes uzdevums" in report
+    assert "## 2. Veiktās pārbaudes un rezultāti" in report
     assert report.index("## 1. Atzinums") < report.index("## 2. Veiktās")
     assert "| Attēla detektors | Fake (viltots), rezultāts 0,981 |" in report
     assert "| Ūdenszīmes (Resemble Perth, Google SynthID) | Perth nav; SynthID nav |" in report
     assert "| C2PA satura akreditācija | nav |" in report and "| EXIF metadati | nav |" in report
     assert "8 no 8 atbildēti" in report and "klasificē kā viltotu" in report
     assert "<img" not in report
-    assert "## 4. Atsauces" in report and "docs.resemble.ai" in report and "## 5. Rādītāju skaidrojums" in report
+    assert "## 3. Atsauces" in report and "docs.resemble.ai" in report and "## 4. Rādītāju skaidrojums" in report
     cover = (output / "atzinums.lv.md").read_text()
     assert "### attēls.jpg" in cover and "### document.txt" in cover and "nav atbalstīts" in cover
     assert sha256(directory / "source.jpg") == sha256(source / "attēls.jpg")
